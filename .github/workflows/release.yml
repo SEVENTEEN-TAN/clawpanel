@@ -36,7 +36,7 @@ jobs:
             rust_target: x86_64-apple-darwin
           # Linux x86_64
           - name: Linux (x64)
-            os: ubuntu-22.04
+            os: ubuntu-latest
             args: ""
             rust_target: ""
           # Windows x86_64
@@ -75,7 +75,7 @@ jobs:
 
       # Linux 专用: 安装 Tauri v2 系统依赖
       - name: 安装 Linux 系统依赖
-        if: matrix.platform.os == 'ubuntu-22.04'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \

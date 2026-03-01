@@ -136,7 +136,11 @@ function renderOverview(page, services, clawapp, tunnel, mcpConfig, backups, con
   const formatDate = (timestamp) => {
     if (!timestamp) return '——'
     const d = new Date(timestamp * 1000)
-    return \`\${d.getMonth()+1}-\${d.getDate()} \${d.getHours().toString().padStart(2, '0')}:\${d.getMinutes().toString().padStart(2, '0')}\`
+    const mon = d.getMonth() + 1
+    const day = d.getDate()
+    const hr = d.getHours().toString().padStart(2, '0')
+    const min = d.getMinutes().toString().padStart(2, '0')
+    return mon + '-' + day + ' ' + hr + ':' + min
   }
 
   const latestBackup = backups.length > 0 ? backups.sort((a,b) => b.created_at - a.created_at)[0] : null
