@@ -67,6 +67,7 @@
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 15px; transition: all 0.25s; }
     .btn-primary { background: var(--accent); color: #fff; position: relative; z-index: 0; }
     .btn-primary:hover { background: var(--accent-h); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.35); }
+    .btn-magnetic { transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
     .btn-primary::before { content:''; position: absolute; inset: -2px; border-radius: inherit; background: conic-gradient(from var(--angle,0deg), #6366f1, #a855f7, #22d3ee, #6366f1); z-index: -2; animation: spin 3s linear infinite; }
     .btn-primary::after { content:''; position: absolute; inset: 0; border-radius: inherit; background: var(--accent); z-index: -1; }
     @property --angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
@@ -77,8 +78,30 @@
     .btn-sm { padding: 10px 20px; font-size: 13px; border-radius: 10px; }
 
     /* ══════════════ Gradient Text ══════════════ */
-    .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7, #22d3ee, #6366f1); background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: gradShift 6s ease-in-out infinite; }
+    .gradient-text { background: linear-gradient(135deg, #6366f1, #a855f7, #22d3ee, #6366f1); background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: gradShift 6s ease-in-out infinite; position: relative; }
     @keyframes gradShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .shimmer { position: relative; overflow: hidden; display: inline-block; }
+    .shimmer::after { content:''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); animation: shimmer 3s ease-in-out infinite; }
+    @keyframes shimmer { 0% { left: -100%; } 100% { left: 200%; } }
+
+    /* ══════════════ Aurora ══════════════ */
+    .aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+    .aurora-band { position: absolute; width: 150%; height: 60%; filter: blur(80px); opacity: 0.12; border-radius: 50%; }
+    html:not(.dark) .aurora-band { opacity: 0.06; }
+    .aurora-1 { background: linear-gradient(135deg, #6366f1, #a855f7); top: -30%; left: -25%; animation: aur1 12s ease-in-out infinite alternate; }
+    .aurora-2 { background: linear-gradient(225deg, #22d3ee, #6366f1); top: -20%; right: -30%; animation: aur2 15s ease-in-out infinite alternate; }
+    .aurora-3 { background: linear-gradient(180deg, #a855f7, #ec4899); bottom: -40%; left: 10%; animation: aur3 10s ease-in-out infinite alternate; }
+    @keyframes aur1 { 0% { transform: translate(0,0) rotate(0deg) scale(1); } 100% { transform: translate(60px,40px) rotate(15deg) scale(1.1); } }
+    @keyframes aur2 { 0% { transform: translate(0,0) rotate(0deg) scale(1); } 100% { transform: translate(-50px,30px) rotate(-10deg) scale(1.15); } }
+    @keyframes aur3 { 0% { transform: translate(0,0) rotate(0deg) scale(1); } 100% { transform: translate(30px,-20px) rotate(8deg) scale(0.9); } }
+
+    /* ══════════════ Noise Texture ══════════════ */
+    .noise { position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.025; mix-blend-mode: overlay; }
+    .noise::before { content:''; position: absolute; inset: -50%; width: 200%; height: 200%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    html:not(.dark) .noise { opacity: 0.015; }
+
+    /* ══════════════ Scroll Progress ══════════════ */
+    .scroll-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: linear-gradient(90deg, #6366f1, #a855f7, #22d3ee); width: 0%; transition: none; }
 
     /* ══════════════ Background Effects ══════════════ */
     .grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent); }
@@ -109,8 +132,12 @@
     .hero-subtitle { font-size: 1.1rem; color: var(--text-s); max-width: 600px; margin: 0 auto 40px; line-height: 1.7; }
     .hero-cta { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
     .hero-image-wrap { perspective: 1200px; max-width: 1100px; margin: 64px auto 0; padding: 0 16px; position: relative; }
-    .hero-image-wrap img { transform: rotateX(4deg) scale(0.98); border-radius: 16px; box-shadow: 0 20px 60px -15px rgba(99,102,241,0.25), 0 0 0 1px rgba(99,102,241,0.08); transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), box-shadow 0.6s; cursor: zoom-in; width: 100%; }
-    .hero-image-wrap:hover img { transform: rotateX(0deg) scale(1); box-shadow: 0 30px 80px -15px rgba(99,102,241,0.35), 0 0 0 1px rgba(99,102,241,0.15); }
+    .hero-image-wrap::before { content:''; position: absolute; inset: -2px; border-radius: 18px; background: conic-gradient(from var(--border-angle,0deg), #6366f1, #a855f7, #22d3ee, #10b981, #6366f1); z-index: -1; animation: borderSpin 4s linear infinite; opacity: 0.6; }
+    .hero-image-wrap::after { content:''; position: absolute; inset: -2px; border-radius: 18px; background: conic-gradient(from var(--border-angle,0deg), #6366f1, #a855f7, #22d3ee, #10b981, #6366f1); z-index: -1; animation: borderSpin 4s linear infinite; filter: blur(20px); opacity: 0.4; }
+    @property --border-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+    @keyframes borderSpin { to { --border-angle: 360deg; } }
+    .hero-image-wrap img { transform: rotateX(4deg) scale(0.98); border-radius: 16px; box-shadow: 0 20px 60px -15px rgba(99,102,241,0.25); transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), box-shadow 0.6s; cursor: zoom-in; width: 100%; position: relative; z-index: 1; }
+    .hero-image-wrap:hover img { transform: rotateX(0deg) scale(1); box-shadow: 0 30px 80px -15px rgba(99,102,241,0.35); }
     .hero-glow { position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%); width: 80%; height: 120px; background: radial-gradient(ellipse, rgba(99,102,241,0.15), transparent 70%); filter: blur(40px); pointer-events: none; }
     html:not(.dark) .hero-glow { background: radial-gradient(ellipse, rgba(99,102,241,0.08), transparent 70%); }
 
@@ -133,8 +160,10 @@
     .showcase-list { display: flex; flex-direction: column; gap: 8px; }
     .showcase-list li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-s); }
     .check { color: #22c55e; flex-shrink: 0; font-weight: 700; }
-    .screenshot-frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--card-shadow); transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.5s; cursor: zoom-in; }
-    .screenshot-frame:hover { transform: translateY(-6px); box-shadow: 0 20px 60px -10px rgba(99,102,241,0.2); }
+    .screenshot-frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--card-shadow); transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.5s; cursor: zoom-in; position: relative; }
+    .screenshot-frame:hover { transform: translateY(-6px) scale(1.01); box-shadow: 0 20px 60px -10px rgba(99,102,241,0.2); }
+    .screenshot-frame::after { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(99,102,241,0.08), transparent 50%); opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+    .screenshot-frame:hover::after { opacity: 1; }
     .screenshot-frame img { width: 100%; display: block; }
 
     /* ══════════════ Gallery ══════════════ */
@@ -153,7 +182,8 @@
     /* ══════════════ Tech ══════════════ */
     .tech-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
     .tech-card { border-radius: 16px; border: 1px solid var(--border); background: var(--bg-card); backdrop-filter: blur(8px); padding: 24px; transition: transform 0.3s, box-shadow 0.3s; position: relative; overflow: hidden; }
-    .tech-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px -10px rgba(99,102,241,0.12); }
+    .tech-card:hover { box-shadow: 0 12px 40px -10px rgba(99,102,241,0.12); }
+    .tilt-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); transform-style: preserve-3d; }
     .tech-card::before { content:''; position: absolute; inset: 0; background: radial-gradient(300px circle at var(--mx,50%) var(--my,50%), rgba(99,102,241,0.06), transparent 60%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
     .tech-card:hover::before { opacity: 1; }
     .tech-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -268,7 +298,9 @@
 <body>
 
   <!-- ══════════════ Nav ══════════════ -->
+  <div class="noise"></div>
   <nav class="nav">
+    <div class="scroll-progress" id="scroll-progress"></div>
     <div class="nav-inner">
       <a href="#" class="nav-logo"><img src="./logo.png" alt="Logo">ClawPanel</a>
       <div class="nav-links">
@@ -304,21 +336,26 @@
   </nav>
 
   <!-- ══════════════ Hero ══════════════ -->
-  <section class="hero">
+  <section class="hero" id="hero">
+    <div class="aurora">
+      <div class="aurora-band aurora-1"></div>
+      <div class="aurora-band aurora-2"></div>
+      <div class="aurora-band aurora-3"></div>
+    </div>
     <div class="grid-bg"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+    <div class="orb orb-1" id="orb1"></div>
+    <div class="orb orb-2" id="orb2"></div>
     <div class="particles" id="particles"></div>
     <div class="hero-inner">
-      <div class="reveal hero-badge"><span class="pulse"></span> v0.2.1 已发布 — 支持聊天图片 &amp; 灯箱查看</div>
-      <h1 class="reveal hero-title">管理你的 <span class="gradient-text">AI Agent</span><br>从未如此直观</h1>
+      <div class="reveal hero-badge"><span class="pulse"></span> v0.3.0 已发布 — 社区交流 &amp; 高级视觉特效</div>
+      <h1 class="reveal hero-title">管理你的 <span class="gradient-text shimmer">AI Agent</span><br>从未如此直观</h1>
       <p class="reveal hero-subtitle">ClawPanel 是 <strong>OpenClaw</strong> 的可视化管理面板，基于 Tauri v2 构建。<br>仪表盘、模型配置、实时聊天、记忆管理 — 一站式掌控。</p>
       <div class="reveal hero-cta">
         <a href="https://github.com/qingchencloud/clawpanel/releases/latest" target="_blank" rel="noopener" class="btn btn-primary">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
           下载最新版
         </a>
-        <a href="https://github.com/qingchencloud/clawpanel" target="_blank" rel="noopener" class="btn btn-outline">
+        <a href="https://github.com/qingchencloud/clawpanel" target="_blank" rel="noopener" class="btn btn-outline btn-magnetic">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
           源代码
         </a>
@@ -348,7 +385,7 @@
     <div class="orb orb-3"></div>
     <div class="container" style="position:relative;z-index:10">
       <div class="section-header">
-        <h2 class="reveal section-title">强大的 <span class="gradient-text">功能矩阵</span></h2>
+        <h2 class="reveal section-title">强大的 <span class="gradient-text shimmer">功能矩阵</span></h2>
         <p class="reveal section-desc">一个面板，管理 OpenClaw 的方方面面</p>
       </div>
 
@@ -754,6 +791,55 @@
         c.appendChild(p);
       }
     })();
+
+    /* ── Scroll Progress Bar ── */
+    var progressBar = document.getElementById('scroll-progress');
+    window.addEventListener('scroll', function() {
+      var h = document.documentElement.scrollHeight - window.innerHeight;
+      var p = h > 0 ? (window.scrollY / h) * 100 : 0;
+      progressBar.style.width = p + '%';
+    }, { passive: true });
+
+    /* ── Mouse Parallax on Orbs ── */
+    var orb1 = document.getElementById('orb1');
+    var orb2 = document.getElementById('orb2');
+    var heroEl = document.getElementById('hero');
+    heroEl.addEventListener('mousemove', function(e) {
+      var cx = (e.clientX / window.innerWidth - 0.5) * 2;
+      var cy = (e.clientY / window.innerHeight - 0.5) * 2;
+      orb1.style.transform = 'translate(' + (cx * 30) + 'px,' + (cy * 20) + 'px)';
+      orb2.style.transform = 'translate(' + (cx * -25) + 'px,' + (cy * -15) + 'px)';
+    });
+    heroEl.addEventListener('mouseleave', function() {
+      orb1.style.transform = ''; orb2.style.transform = '';
+    });
+
+    /* ── Magnetic Buttons ── */
+    document.querySelectorAll('.btn-magnetic').forEach(function(btn) {
+      btn.addEventListener('mousemove', function(e) {
+        var r = btn.getBoundingClientRect();
+        var dx = e.clientX - (r.left + r.width / 2);
+        var dy = e.clientY - (r.top + r.height / 2);
+        btn.style.transform = 'translate(' + (dx * 0.15) + 'px,' + (dy * 0.15) + 'px)';
+      });
+      btn.addEventListener('mouseleave', function() {
+        btn.style.transform = '';
+      });
+    });
+
+    /* ── 3D Tilt on Tech & Gallery Cards ── */
+    document.querySelectorAll('.tech-card, .gallery-card, .eco-card').forEach(function(card) {
+      card.classList.add('tilt-card');
+      card.addEventListener('mousemove', function(e) {
+        var r = card.getBoundingClientRect();
+        var x = (e.clientX - r.left) / r.width - 0.5;
+        var y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = 'perspective(600px) rotateY(' + (x * 8) + 'deg) rotateX(' + (-y * 8) + 'deg) scale(1.02)';
+      });
+      card.addEventListener('mouseleave', function() {
+        card.style.transform = '';
+      });
+    });
   </script>
 </body>
 </html>
