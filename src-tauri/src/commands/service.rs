@@ -213,13 +213,25 @@ mod platform {
         Ok(0)
     }
 
-    /// 检测 openclaw CLI 是否已安装（文件系统检测，避免 spawn 进程）
+    /// 检测 openclaw CLI 是否已安装
     pub fn is_cli_installed() -> bool {
+        // 方式1: 检查常见文件路径
         if let Ok(appdata) = std::env::var("APPDATA") {
             let cmd_path = std::path::Path::new(&appdata)
                 .join("npm")
                 .join("openclaw.cmd");
             if cmd_path.exists() {
+                return true;
+            }
+        }
+        // 方式2: 通过 PATH 查找（兼容 nvm、自定义 prefix 等）
+        let mut cmd = std::process::Command::new("cmd");
+        cmd.args(["/c", "openclaw", "--version"]);
+        cmd.env("PATH", crate::commands::enhanced_path());
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        if let Ok(o) = cmd.output() {
+            if o.status.success() {
                 return true;
             }
         }

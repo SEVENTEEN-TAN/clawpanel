@@ -36,7 +36,7 @@ pub fn enhanced_path() -> String {
 
     #[cfg(not(target_os = "windows"))]
     {
-        let extra: Vec<String> = vec![
+        let mut extra: Vec<String> = vec![
             "/usr/local/bin".into(),
             "/opt/homebrew/bin".into(),
             format!("{}/.nvm/current/bin", home.display()),
@@ -45,6 +45,18 @@ pub fn enhanced_path() -> String {
             format!("{}/.fnm/current/bin", home.display()),
             format!("{}/n/bin", home.display()),
         ];
+        // 扫描 nvm 实际安装的版本目录（兼容无 current 符号链接的情况）
+        let nvm_versions = home.join(".nvm/versions/node");
+        if nvm_versions.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&nvm_versions) {
+                for entry in entries.flatten() {
+                    let bin = entry.path().join("bin");
+                    if bin.is_dir() {
+                        extra.push(bin.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
         let mut parts: Vec<&str> = vec![];
         if let Some(ref cp) = custom_path {
             parts.push(cp.as_str());
@@ -74,6 +86,32 @@ pub fn enhanced_path() -> String {
         if !appdata.is_empty() {
             extra.push(format!(r"{}\npm", appdata));
             extra.push(format!(r"{}\nvm", appdata));
+            // 扫描 nvm-windows 实际安装的版本目录
+            let nvm_dir = std::path::Path::new(&appdata).join("nvm");
+            if nvm_dir.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(&nvm_dir) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_dir() && p.join("node.exe").exists() {
+                            extra.push(p.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        // NVM_HOME 环境变量（用户可能自定义了 nvm 安装目录）
+        if let Ok(nvm_home) = std::env::var("NVM_HOME") {
+            let nvm_path = std::path::Path::new(&nvm_home);
+            if nvm_path.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(nvm_path) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_dir() && p.join("node.exe").exists() {
+                            extra.push(p.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
         }
         extra.push(format!(r"{}\.volta\bin", home.display()));
 

@@ -278,19 +278,19 @@ export const api = {
   searchLog: (logName, query, maxResults = 50) => invoke('search_log', { logName, query, maxResults }),
 
   // 记忆文件
-  listMemoryFiles: (category, agentId) => cachedInvoke('list_memory_files', { category, agent_id: agentId || null }),
-  readMemoryFile: (path, agentId) => cachedInvoke('read_memory_file', { path, agent_id: agentId || null }, 5000),
-  writeMemoryFile: (path, content, category, agentId) => { invalidate('list_memory_files', 'read_memory_file'); return invoke('write_memory_file', { path, content, category: category || 'memory', agent_id: agentId || null }) },
-  deleteMemoryFile: (path, agentId) => { invalidate('list_memory_files'); return invoke('delete_memory_file', { path, agent_id: agentId || null }) },
-  exportMemoryZip: (category, agentId) => invoke('export_memory_zip', { category, agent_id: agentId || null }),
+  listMemoryFiles: (category, agentId) => cachedInvoke('list_memory_files', { category, agentId: agentId || null }),
+  readMemoryFile: (path, agentId) => cachedInvoke('read_memory_file', { path, agentId: agentId || null }, 5000),
+  writeMemoryFile: (path, content, category, agentId) => { invalidate('list_memory_files', 'read_memory_file'); return invoke('write_memory_file', { path, content, category: category || 'memory', agentId: agentId || null }) },
+  deleteMemoryFile: (path, agentId) => { invalidate('list_memory_files'); return invoke('delete_memory_file', { path, agentId: agentId || null }) },
+  exportMemoryZip: (category, agentId) => invoke('export_memory_zip', { category, agentId: agentId || null }),
 
   // 安装/部署
   checkInstallation: () => cachedInvoke('check_installation', {}, 60000),
   initOpenclawConfig: () => { invalidate('check_installation'); return invoke('init_openclaw_config') },
   checkNode: () => cachedInvoke('check_node', {}, 60000),
-  checkNodeAtPath: (nodeDir) => invoke('check_node_at_path', { node_dir: nodeDir }),
+  checkNodeAtPath: (nodeDir) => invoke('check_node_at_path', { nodeDir }),
   scanNodePaths: () => invoke('scan_node_paths'),
-  saveCustomNodePath: (nodeDir) => invoke('save_custom_node_path', { node_dir: nodeDir }),
+  saveCustomNodePath: (nodeDir) => invoke('save_custom_node_path', { nodeDir }),
   getDeployConfig: () => cachedInvoke('get_deploy_config'),
   patchModelVision: () => invoke('patch_model_vision'),
   checkPanelUpdate: () => invoke('check_panel_update'),
