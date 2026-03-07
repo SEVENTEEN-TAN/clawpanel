@@ -491,16 +491,22 @@ async function fixPairing(page) {
     addLog(`${statusIcon('ok', 14)} ${result}`)
     addLog(`${statusIcon('ok', 14)} 已将 tauri://localhost 加入 gateway.controlUi.allowedOrigins`)
 
-    // 2. 重启 Gateway
-    addLog(`${icon('zap', 14)} 重启 Gateway 服务...`)
-    await api.restartService('ai.openclaw.gateway')
-    addLog(`${statusIcon('ok', 14)} Gateway 重启命令已发送`)
+    // 2. 停止 Gateway（确保旧进程完全退出，新进程能重新读取配置）
+    addLog(`${icon('zap', 14)} 停止 Gateway 服务...`)
+    try { await api.stopService('ai.openclaw.gateway') } catch {}
+    addLog(`${icon('clock', 14)} 等待进程退出（3秒）...`)
+    await new Promise(resolve => setTimeout(resolve, 3000))
 
-    // 3. 等待 Gateway 启动
-    addLog(`${icon('clock', 14)} 等待 Gateway 启动（8秒）...`)
-    await new Promise(resolve => setTimeout(resolve, 8000))
+    // 3. 启动 Gateway（重新加载 openclaw.json 配置）
+    addLog(`${icon('zap', 14)} 启动 Gateway 服务...`)
+    await api.startService('ai.openclaw.gateway')
+    addLog(`${statusIcon('ok', 14)} Gateway 启动命令已发送`)
 
-    // 4. 检查 Gateway 状态
+    // 4. 等待 Gateway 就绪
+    addLog(`${icon('clock', 14)} 等待 Gateway 就绪（5秒）...`)
+    await new Promise(resolve => setTimeout(resolve, 5000))
+
+    // 5. 检查 Gateway 状态
     addLog(`${icon('search', 14)} 检查 Gateway 状态...`)
     const services = await api.getServicesStatus()
     const running = services?.[0]?.running
@@ -511,7 +517,7 @@ async function fixPairing(page) {
       addLog(`${statusIcon('warn', 14)} Gateway 可能还在启动中，请稍后手动测试`)
     }
 
-    // 5. 测试 WebSocket 连接
+    // 6. 测试 WebSocket 连接
     addLog(`${icon('plug', 14)} 测试 WebSocket 连接...`)
     const config = await api.readOpenclawConfig()
     const port = config?.gateway?.port || 18789
