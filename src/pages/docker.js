@@ -191,6 +191,40 @@ async function loadClusterOverview(page) {
     if (detail) detail.textContent = `${nodes.length} 节点 · ${runningContainers} 运行 / ${totalContainers} 总计`
   } catch (e) {
     page.querySelector('#cluster-stats').innerHTML = `<span class="cluster-stat" style="color:var(--error,#ef4444)">${icon('x-circle', 12)} Docker 未连接: ${esc(e.message)}</span>`
+    const isWin = navigator.userAgent.includes('Windows')
+    const isMacOS = navigator.userAgent.includes('Mac')
+    const installGuide = isWin
+      ? `<div class="docker-guide-section">
+          <div class="docker-guide-title">${icon('download', 14)} Windows 安装 Docker Desktop</div>
+          <ol>
+            <li>下载 <a href="https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" target="_blank" style="color:var(--accent)">Docker Desktop for Windows</a></li>
+            <li>双击安装包，按提示完成安装（需要 WSL2 支持）</li>
+            <li>安装完成后启动 Docker Desktop，等待右下角鲸鱼图标变绿</li>
+            <li>回到本页面点击「刷新」</li>
+          </ol>
+          <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">如已安装，请确认 Docker Desktop 已启动（右下角托盘图标）</div>
+        </div>`
+      : isMacOS
+        ? `<div class="docker-guide-section">
+            <div class="docker-guide-title">${icon('download', 14)} macOS 安装 Docker Desktop</div>
+            <ol>
+              <li>下载 <a href="https://desktop.docker.com/mac/main/arm64/Docker.dmg" target="_blank" style="color:var(--accent)">Docker Desktop for Mac (Apple Silicon)</a> 或 <a href="https://desktop.docker.com/mac/main/amd64/Docker.dmg" target="_blank" style="color:var(--accent)">Intel 版</a></li>
+              <li>拖入 Applications 文件夹，启动 Docker Desktop</li>
+              <li>等待菜单栏鲸鱼图标变为运行状态</li>
+              <li>回到本页面点击「刷新」</li>
+            </ol>
+            <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">也可通过 Homebrew 安装：<code style="font-size:11px">brew install --cask docker</code></div>
+          </div>`
+        : `<div class="docker-guide-section">
+            <div class="docker-guide-title">${icon('download', 14)} Linux 安装 Docker</div>
+            <ol>
+              <li>一键安装：<code style="font-size:11px">curl -fsSL https://get.docker.com | sh</code></li>
+              <li>将当前用户加入 docker 组：<code style="font-size:11px">sudo usermod -aG docker $USER</code></li>
+              <li>重新登录后执行 <code style="font-size:11px">docker info</code> 验证</li>
+              <li>回到本页面点击「刷新」</li>
+            </ol>
+            <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">如已安装，确认 Docker 守护进程已启动：<code style="font-size:11px">sudo systemctl start docker</code></div>
+          </div>`
     page.querySelector('#workers-grid').innerHTML = `
       <div class="docker-empty">
         <div class="docker-empty-icon">
@@ -198,10 +232,7 @@ async function loadClusterOverview(page) {
         </div>
         <div class="docker-empty-title">Docker 未连接</div>
         <div class="docker-empty-desc">${esc(e.message)}</div>
-        <div class="docker-empty-hint">
-          <p>确保 Docker 已安装并运行：</p>
-          <code>docker info</code>
-        </div>
+        ${installGuide}
       </div>
     `
     page.querySelector('#docker-nodes').innerHTML = ''
