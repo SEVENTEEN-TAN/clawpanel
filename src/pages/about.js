@@ -171,13 +171,13 @@ async function showVersionPicker(page, currentVersion) {
         <div>
           <label style="font-size:var(--font-size-sm);color:var(--text-secondary);display:block;margin-bottom:8px">版本</label>
           <div style="display:flex;gap:8px">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:var(--font-size-sm);flex:1;justify-content:center;transition:all .15s" id="lbl-chinese">
-              <input type="radio" name="oc-source" value="chinese" ${currentVersion.source !== 'official' ? 'checked' : ''} style="accent-color:var(--primary)">
-              汉化版
-            </label>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:var(--font-size-sm);flex:1;justify-content:center;transition:all .15s" id="lbl-official">
-              <input type="radio" name="oc-source" value="official" ${currentVersion.source === 'official' ? 'checked' : ''} style="accent-color:var(--primary)">
+              <input type="radio" name="oc-source" value="official" ${currentVersion.source !== 'chinese' ? 'checked' : ''} style="accent-color:var(--primary)">
               原版
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:var(--font-size-sm);flex:1;justify-content:center;transition:all .15s" id="lbl-chinese">
+              <input type="radio" name="oc-source" value="chinese" ${currentVersion.source === 'chinese' ? 'checked' : ''} style="accent-color:var(--primary)">
+              汉化版
             </label>
           </div>
         </div>
@@ -210,7 +210,7 @@ async function showVersionPicker(page, currentVersion) {
   overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close() })
 
   let versionsCache = {}
-  let currentSelect = currentVersion.source === 'official' ? 'official' : 'chinese'
+  let currentSelect = currentVersion.source === 'chinese' ? 'chinese' : 'official'
 
   function updateRadioStyle() {
     const sel = currentSelect

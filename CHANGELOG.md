@@ -5,6 +5,13 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.3] - 2026-03-12
+
+### 修复 (Fixes)
+
+- **默认安装改为原版** — 版本选择器默认选中「原版」（official），原版排在汉化版前面
+- **CI Clippy 兼容** — Linux root 检测从 `unsafe libc::geteuid()` 改为 `std::env::var("USER")`，移除 libc 依赖
+
 ## [0.8.2] - 2026-03-12
 
 ### 修复 (Fixes)
