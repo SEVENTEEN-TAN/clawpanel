@@ -187,7 +187,10 @@ async function showVersionPicker(page, currentVersion) {
             <option value="">加载中...</option>
           </select>
         </div>
-        <div id="oc-action-hint" style="font-size:var(--font-size-xs);color:var(--text-tertiary);min-height:18px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;min-height:18px">
+          <div id="oc-action-hint" style="font-size:var(--font-size-xs);color:var(--text-tertiary)"></div>
+          <div id="nightly-toggle" style="display:none"></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary btn-sm" data-action="cancel">取消</button>
@@ -266,6 +269,8 @@ async function showVersionPicker(page, currentVersion) {
     }
   }
 
+  let showNightly = false
+
   async function loadVersions(source) {
     select.innerHTML = '<option value="">加载中...</option>'
     confirmBtn.disabled = true
@@ -274,15 +279,31 @@ async function showVersionPicker(page, currentVersion) {
       if (!versionsCache[source]) {
         versionsCache[source] = await api.listOpenclawVersions(source)
       }
-      const versions = versionsCache[source]
-      if (!versions.length) {
+      const allVersions = versionsCache[source]
+      if (!allVersions.length) {
         select.innerHTML = '<option value="">未找到可用版本</option>'
         return
       }
+      const stable = allVersions.filter(v => !v.includes('nightly') && !v.includes('canary') && !v.includes('alpha') && !v.includes('beta') && !v.includes('rc') && !v.includes('dev') && !v.includes('next'))
+      const versions = showNightly ? allVersions : (stable.length > 0 ? stable : allVersions)
+      const nightlyCount = allVersions.length - stable.length
       select.innerHTML = versions.map(v => {
         const isCurrent = isInstalled && v === currentVersion.current && source === (currentVersion.source === 'official' ? 'official' : 'chinese')
         return `<option value="${v}">${v}${isCurrent ? ' (当前)' : ''}</option>`
       }).join('')
+      // nightly 切换提示
+      const toggleEl = overlay.querySelector('#nightly-toggle')
+      if (toggleEl) {
+        if (nightlyCount > 0) {
+          toggleEl.style.display = ''
+          toggleEl.innerHTML = showNightly
+            ? `<a href="#" id="btn-toggle-nightly" style="color:var(--primary);text-decoration:none;font-size:var(--font-size-xs)">隐藏预览版 (${nightlyCount})</a>`
+            : `<a href="#" id="btn-toggle-nightly" style="color:var(--text-tertiary);text-decoration:none;font-size:var(--font-size-xs)">显示预览版 (${nightlyCount})</a>`
+          toggleEl.querySelector('#btn-toggle-nightly').onclick = (e) => { e.preventDefault(); showNightly = !showNightly; loadVersions(source) }
+        } else {
+          toggleEl.style.display = 'none'
+        }
+      }
       updateHint()
     } catch (e) {
       select.innerHTML = `<option value="">加载失败: ${e.message || e}</option>`
