@@ -607,20 +607,20 @@ function showGuardianRecovery() {
   banner.querySelector('#btn-gw-recover-fix')?.addEventListener('click', async (e) => {
     const btn = e.target
     btn.disabled = true
-    btn.textContent = '修复中...'
+    btn.textContent = t('dashboard.fixing')
     // 弹出修复弹窗
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
     overlay.innerHTML = `
       <div class="modal" style="max-width:560px">
-        <div class="modal-title">🔧 自动修复</div>
+        <div class="modal-title">${t('dashboard.fixModalTitle')}</div>
         <div style="font-size:var(--font-size-sm);color:var(--text-secondary);margin-bottom:12px">
-          正在执行 <code>openclaw doctor --fix</code>，自动检测并修复常见配置问题...
+          ${t('dashboard.fixModalDesc')}
         </div>
-        <div id="fix-log" style="font-family:var(--font-mono);font-size:11px;background:var(--bg-tertiary);padding:12px;border-radius:var(--radius-md);max-height:300px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;color:var(--text-secondary)">⏳ 执行中...\n</div>
+        <div id="fix-log" style="font-family:var(--font-mono);font-size:11px;background:var(--bg-tertiary);padding:12px;border-radius:var(--radius-md);max-height:300px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;color:var(--text-secondary)">${t('dashboard.fixRunning')}\n</div>
         <div id="fix-status" style="margin-top:12px;font-size:var(--font-size-sm);font-weight:600"></div>
         <div class="modal-actions" style="margin-top:16px">
-          <button class="btn btn-secondary btn-sm" id="fix-close" style="display:none">关闭</button>
+          <button class="btn btn-secondary btn-sm" id="fix-close" style="display:none">${t('common.close')}</button>
         </div>
       </div>
     `
@@ -633,38 +633,38 @@ function showGuardianRecovery() {
     try {
       const result = await api.doctorFix()
       const output = result?.stdout || result?.output || JSON.stringify(result, null, 2)
-      logEl.textContent = output || '✅ 修复完成（无输出）'
+      logEl.textContent = output || t('dashboard.fixDoneNoOutput')
       logEl.scrollTop = logEl.scrollHeight
       if (result?.errors) {
-        statusEl.innerHTML = `<span style="color:var(--warning)">⚠ 修复完成，但有警告：${escapeHtml(String(result.errors).slice(0, 200))}</span>`
+        statusEl.innerHTML = `<span style="color:var(--warning)">${t('dashboard.fixDoneWarning')}${escapeHtml(String(result.errors).slice(0, 200))}</span>`
       } else {
-        statusEl.innerHTML = '<span style="color:var(--success)">✅ 修复完成，正在重启 Gateway...</span>'
+        statusEl.innerHTML = `<span style="color:var(--success)">${t('dashboard.fixDoneRestarting')}</span>`
         resetAutoRestart()
         try {
           await api.startService('ai.openclaw.gateway')
-          statusEl.innerHTML = '<span style="color:var(--success)">✅ 修复完成，Gateway 已重启</span>'
+          statusEl.innerHTML = `<span style="color:var(--success)">${t('dashboard.fixDoneRestarted')}</span>`
         } catch {
-          statusEl.innerHTML = '<span style="color:var(--warning)">✅ 修复完成，但 Gateway 启动失败，请手动检查</span>'
+          statusEl.innerHTML = `<span style="color:var(--warning)">${t('dashboard.fixDoneRestartFail')}</span>`
         }
       }
     } catch (err) {
       logEl.textContent += '\n❌ ' + (err.message || String(err))
-      statusEl.innerHTML = `<span style="color:var(--error)">❌ 修复失败：${escapeHtml(String(err.message || err).slice(0, 200))}</span>`
+      statusEl.innerHTML = `<span style="color:var(--error)">${t('dashboard.fixFailed')}${escapeHtml(String(err.message || err).slice(0, 200))}</span>`
     }
     closeBtn.style.display = ''
-    btn.textContent = '一键修复'
+    btn.textContent = t('dashboard.autoFix')
     btn.disabled = false
   })
   banner.querySelector('#btn-gw-recover-restart')?.addEventListener('click', async (e) => {
     const btn = e.target
     btn.disabled = true
-    btn.textContent = '启动中...'
+    btn.textContent = t('dashboard.fixing')
     resetAutoRestart()
     try {
       await api.startService('ai.openclaw.gateway')
-      btn.textContent = '已发送启动命令'
+      btn.textContent = t('dashboard.startSent')
     } catch (err) {
-      btn.textContent = '启动失败'
+      btn.textContent = t('dashboard.retryStart')
       btn.disabled = false
     }
   })
