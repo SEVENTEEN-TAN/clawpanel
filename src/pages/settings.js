@@ -61,6 +61,11 @@ export async function render() {
       <div id="language-bar"></div>
     </div>
 
+    ${window.__TAURI_INTERNALS__ ? `<div class="config-section" id="autostart-section">
+      <div class="config-section-title">${t('settings.autostart') || '开机自启'}</div>
+      <div id="autostart-bar"><div class="stat-card loading-placeholder" style="height:48px"></div></div>
+    </div>` : ''}
+
   `
 
   bindEvents(page)
@@ -71,6 +76,7 @@ export async function render() {
 async function loadAll(page) {
   const tasks = [loadProxyConfig(page), loadModelProxyConfig(page), loadOpenclawDir(page), loadCliBinding(page)]
   tasks.push(loadRegistry(page))
+  if (window.__TAURI_INTERNALS__) tasks.push(loadAutostart(page))
   await Promise.all(tasks)
   loadLanguageSwitcher(page)
 }
@@ -447,5 +453,43 @@ function loadLanguageSwitcher(page) {
     render().then(newPage => {
       pageEl.replaceWith(newPage)
     }).catch(() => {})
+  }
+}
+
+// ===== 开机自启 =====
+
+async function loadAutostart(page) {
+  const bar = page.querySelector('#autostart-bar')
+  if (!bar) return
+  try {
+    const { isEnabled, enable, disable } = await import('@tauri-apps/plugin-autostart')
+    const enabled = await isEnabled()
+    bar.innerHTML = `
+      <div style="display:flex;align-items:center;gap:var(--space-sm)">
+        <label style="display:flex;align-items:center;gap:6px;font-size:var(--font-size-sm);cursor:pointer">
+          <input type="checkbox" id="autostart-toggle" ${enabled ? 'checked' : ''}>
+          ${t('settings.autostartToggle') || '系统启动时自动运行 ClawPanel'}
+        </label>
+      </div>
+      <div class="form-hint" style="margin-top:var(--space-xs)">
+        ${t('settings.autostartHint') || '开启后，电脑重启时 ClawPanel 会自动启动并检测 Gateway 状态'}
+      </div>
+    `
+    bar.querySelector('#autostart-toggle')?.addEventListener('change', async (e) => {
+      try {
+        if (e.target.checked) {
+          await enable()
+          toast(t('settings.autostartEnabled') || '已开启开机自启', 'success')
+        } else {
+          await disable()
+          toast(t('settings.autostartDisabled') || '已关闭开机自启', 'success')
+        }
+      } catch (err) {
+        e.target.checked = !e.target.checked
+        toast((t('settings.autostartFailed') || '设置失败') + ': ' + err, 'error')
+      }
+    })
+  } catch {
+    bar.innerHTML = `<div style="color:var(--text-tertiary);font-size:var(--font-size-sm)">${t('settings.autostartUnavailable') || '当前环境不支持开机自启'}</div>`
   }
 }
