@@ -1203,7 +1203,8 @@ pub async fn run_channel_action(
                 "@tencent-weixin/openclaw-weixin-cli@latest".to_string()
             }
         };
-        // 先清理旧的不兼容插件目录（v1.0.3 的 CLI 检测到已安装会做 in-place update，不会覆盖旧文件）
+        // 先清理旧的不兼容插件目录 + openclaw.json 中的残留配置
+        // （否则 OpenClaw 配置校验会报 unknown channel / plugin not found）
         let weixin_ext_dir = super::openclaw_dir()
             .join("extensions")
             .join("openclaw-weixin");
@@ -1213,6 +1214,36 @@ pub async fn run_channel_action(
                 json!({ "platform": &platform, "action": &action, "kind": "info", "message": "清理旧版微信插件目录..." }),
             );
             let _ = std::fs::remove_dir_all(&weixin_ext_dir);
+        }
+        // 清理 openclaw.json 中的微信残留配置
+        if let Ok(mut cfg) = super::config::load_openclaw_json() {
+            let mut changed = false;
+            if let Some(channels) = cfg.get_mut("channels").and_then(|c| c.as_object_mut()) {
+                if channels.remove("openclaw-weixin").is_some() {
+                    changed = true;
+                }
+            }
+            if let Some(plugins) = cfg.get_mut("plugins").and_then(|p| p.as_object_mut()) {
+                if let Some(allow) = plugins.get_mut("allow").and_then(|a| a.as_array_mut()) {
+                    let before = allow.len();
+                    allow.retain(|v| v.as_str() != Some("openclaw-weixin"));
+                    if allow.len() != before {
+                        changed = true;
+                    }
+                }
+                if let Some(entries) = plugins.get_mut("entries").and_then(|e| e.as_object_mut()) {
+                    if entries.remove("openclaw-weixin").is_some() {
+                        changed = true;
+                    }
+                }
+            }
+            if changed {
+                let _ = super::config::save_openclaw_json(&cfg);
+                let _ = app.emit(
+                    "channel-action-log",
+                    json!({ "platform": &platform, "action": &action, "kind": "info", "message": "已清理 openclaw.json 中的微信插件残留配置" }),
+                );
+            }
         }
 
         let _ = app.emit(
