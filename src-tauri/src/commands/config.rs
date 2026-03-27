@@ -1238,14 +1238,16 @@ async fn get_local_version() -> Option<String> {
 
         if let Ok(appdata) = std::env::var("APPDATA") {
             let npm_bin = PathBuf::from(&appdata).join("npm");
+            let shim_path = npm_bin.join("openclaw.cmd");
             // 仅当 npm 全局 CLI shim 存在时才读取版本
-            if !npm_bin.join("openclaw.cmd").exists() {
+            if !shim_path.exists() {
                 // npm 全局无 CLI shim，跳过
             } else {
-                let cli_is_zh = crate::utils::resolve_openclaw_cli_path()
-                    .map(|p| crate::utils::classify_cli_source(&p) == "npm-zh")
+                // 读 .cmd 内容判断活跃包，而非依赖 classify_cli_source（路径无法区分）
+                let is_zh = detect_source_from_cmd_shim(&shim_path)
+                    .map(|s| s == "chinese")
                     .unwrap_or(false);
-                let pkgs: &[&str] = if cli_is_zh {
+                let pkgs: &[&str] = if is_zh {
                     &["@qingchencloud/openclaw-zh", "openclaw"]
                 } else {
                     &["openclaw", "@qingchencloud/openclaw-zh"]
@@ -1315,9 +1317,27 @@ async fn get_latest_version_for(source: &str) -> Option<String> {
         .map(String::from)
 }
 
+/// 从 Windows .cmd shim 文件内容判断实际关联的 npm 包来源
+/// npm 生成的 shim 末尾引用实际 JS 入口，据此区分官方版与汉化版
+#[cfg(target_os = "windows")]
+fn detect_source_from_cmd_shim(cmd_path: &std::path::Path) -> Option<String> {
+    let content = std::fs::read_to_string(cmd_path).ok()?;
+    let lower = content.to_lowercase();
+    // 汉化版标记：@qingchencloud 或 openclaw-zh
+    if lower.contains("openclaw-zh") || lower.contains("@qingchencloud") {
+        return Some("chinese".into());
+    }
+    // 确认是 npm shim（含 node_modules 引用）→ 官方版
+    if lower.contains("node_modules") {
+        return Some("official".into());
+    }
+    // standalone 的 .cmd 可能不含 node_modules（自定义脚本），由 classify 处理
+    None
+}
+
 /// 检测当前安装的是官方版还是汉化版
-/// macOS: 优先检查 homebrew symlink，fallback 到 npm list
-/// Windows: 优先检查 npm 全局目录下的 package.json，避免调用 npm list 阻塞
+/// macOS: 优先检查 symlink 指向的实际路径
+/// Windows: 读取 .cmd shim 内容判断实际关联的包
 /// Linux: 直接用 npm list
 fn detect_installed_source() -> String {
     // macOS: 检查 openclaw bin 的 symlink 指向
@@ -1349,45 +1369,36 @@ fn detect_installed_source() -> String {
                 return "chinese".into();
             }
         }
-        "official".into()
+        "unknown".into()
     }
-    // Windows: 优先通过 CLI 路径判断，fallback 到文件系统检测
+    // Windows: 通过活跃 CLI 的 .cmd shim 内容判断来源
+    // npm 生成的 .cmd shim 最后一行包含实际 JS 入口路径，例如:
+    //   "%dp0%\node_modules\openclaw\bin\openclaw.js"           → 官方版
+    //   "%dp0%\node_modules\@qingchencloud\openclaw-zh\..."     → 汉化版
+    // 读取内容即可一锤定音，不依赖文件系统扫描（避免残留目录误判）
     #[cfg(target_os = "windows")]
     {
-        // 优先通过实际 CLI 路径判断
         if let Some(cli_path) = crate::utils::resolve_openclaw_cli_path() {
             let source = crate::utils::classify_cli_source(&cli_path);
-            if source == "npm-zh" {
+            // 路径本身能确定的情况（standalone 目录、npm-zh 路径含 openclaw-zh）
+            if source == "npm-zh" || source == "standalone" {
                 return "chinese".into();
             }
-            if source == "standalone" {
-                return "chinese".into();
-            }
-            // npm-official/npm-global: Windows .cmd shim 路径不含包名，需继续检查文件系统
-        }
-        // 检查所有可能的 standalone 安装目录
-        for sa_dir in all_standalone_dirs() {
-            let sa_zh = sa_dir
-                .join("node_modules")
-                .join("@qingchencloud")
-                .join("openclaw-zh");
-            if sa_zh.exists() {
-                return "chinese".into();
+            // npm-official / npm-global / unknown: 路径不含包名，读 .cmd 内容判断
+            if let Some(shim_source) = detect_source_from_cmd_shim(std::path::Path::new(&cli_path))
+            {
+                return shim_source;
             }
         }
-        // 检查 npm 全局目录
-        if let Some(appdata) = std::env::var_os("APPDATA") {
-            let zh_dir = PathBuf::from(&appdata)
-                .join("npm")
-                .join("node_modules")
-                .join("@qingchencloud")
-                .join("openclaw-zh");
-            if zh_dir.exists() {
-                return "chinese".into();
+        // 无活跃 CLI 时的兜底：仅检查 npm 全局目录中实际存在的 shim
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            let shim = PathBuf::from(&appdata).join("npm").join("openclaw.cmd");
+            if let Some(s) = detect_source_from_cmd_shim(&shim) {
+                return s;
             }
         }
-        // 默认返回官方版
-        "official".into()
+        // 确实无法判断
+        "unknown".into()
     }
     // 所有平台通用: npm list 检测
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -1400,7 +1411,7 @@ fn detect_installed_source() -> String {
                 return "chinese".into();
             }
         }
-        "official".into()
+        "unknown".into()
     }
 }
 
@@ -1408,14 +1419,23 @@ fn detect_installed_source() -> String {
 pub async fn get_version_info() -> Result<VersionInfo, String> {
     let current = get_local_version().await;
     let mut source = detect_installed_source();
-    // 兜底：版本号含 -zh 则一定是汉化版（文件系统检测可能误判）
+    // 兜底：版本号含 -zh 则一定是汉化版
     if let Some(ref ver) = current {
         if ver.contains("-zh") && source != "chinese" {
             source = "chinese".to_string();
         }
     }
-    let latest = get_latest_version_for(&source).await;
-    let recommended = recommended_version_for(&source);
+    // unknown 来源不查询 latest/recommended（无法确定对应哪个 npm 包）
+    let latest = if source == "unknown" {
+        None
+    } else {
+        get_latest_version_for(&source).await
+    };
+    let recommended = if source == "unknown" {
+        None
+    } else {
+        recommended_version_for(&source)
+    };
     let update_available = match (&current, &recommended) {
         (Some(c), Some(r)) => recommended_is_newer(r, c),
         (None, Some(_)) => true,
@@ -2035,6 +2055,10 @@ async fn try_standalone_install(
                 ])
                 .creation_flags(0x08000000)
                 .status();
+            // 同步更新当前进程的 PATH 环境变量，使后续 resolve_openclaw_cli_path()
+            // 和 build_enhanced_path() 能立即发现 standalone 安装的 CLI，
+            // 无需重启应用（注册表写入仅对新进程生效）
+            std::env::set_var("PATH", format!("{};{}", current_path, install_str));
             let _ = app.emit("upgrade-log", format!("已添加到 PATH: {install_str}"));
         }
     }
@@ -2646,6 +2670,18 @@ async fn upgrade_openclaw_inner(
     if need_uninstall_old {
         let _ = app.emit("upgrade-log", format!("清理旧版本 ({old_pkg})..."));
         let _ = npm_command().args(["uninstall", "-g", old_pkg]).output();
+
+        // 清理 standalone 安装目录（不论从 standalone 切走还是切到 standalone，
+        // npm 路径已经安装了新 CLI，standalone 残留会干扰源检测）
+        for sa_dir in all_standalone_dirs() {
+            if sa_dir.exists() {
+                let _ = app.emit(
+                    "upgrade-log",
+                    format!("清理 standalone 残留: {}", sa_dir.display()),
+                );
+                let _ = std::fs::remove_dir_all(&sa_dir);
+            }
+        }
     }
 
     // 切换源后重装 Gateway 服务
@@ -4441,5 +4477,26 @@ pub fn configure_git_https() -> Result<String, String> {
 pub fn invalidate_path_cache() -> Result<(), String> {
     super::refresh_enhanced_path();
     crate::commands::service::invalidate_cli_detection_cache();
+    Ok(())
+}
+pub fn configure_git_https() -> Result<String, String> {
+    let success = configure_git_https_rules();
+    if success > 0 {
+        Ok(format!(
+            "已配置 Git 使用 HTTPS（{success}/{} 条规则）",
+            GIT_HTTPS_REWRITES.len()
+        ))
+    } else {
+        Err("Git 未安装或配置失败".to_string())
+    }
+}
+
+/// 刷新 enhanced_path 缓存，使新设置的 Node.js 路径立即生效
+#[tauri::command]
+pub fn invalidate_path_cache() -> Result<(), String> {
+    super::refresh_enhanced_path();
+    crate::commands::service::invalidate_cli_detection_cache();
+    Ok(())
+}
     Ok(())
 }
