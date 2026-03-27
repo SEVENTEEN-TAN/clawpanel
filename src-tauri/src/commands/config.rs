@@ -1206,6 +1206,10 @@ async fn get_local_version() -> Option<String> {
         }
 
         for sa_dir in all_standalone_dirs() {
+            // 仅当 CLI 二进制实际存在时才读取版本，避免残留文件误判为已安装
+            if !sa_dir.join("openclaw.cmd").exists() {
+                continue;
+            }
             let version_file = sa_dir.join("VERSION");
             if let Ok(content) = fs::read_to_string(&version_file) {
                 for line in content.lines() {
@@ -1233,26 +1237,28 @@ async fn get_local_version() -> Option<String> {
         }
 
         if let Ok(appdata) = std::env::var("APPDATA") {
-            let cli_is_zh = crate::utils::resolve_openclaw_cli_path()
-                .map(|p| crate::utils::classify_cli_source(&p) == "npm-zh")
-                .unwrap_or(false);
-            let pkgs: &[&str] = if cli_is_zh {
-                &["@qingchencloud/openclaw-zh", "openclaw"]
+            let npm_bin = PathBuf::from(&appdata).join("npm");
+            // 仅当 npm 全局 CLI shim 存在时才读取版本
+            if !npm_bin.join("openclaw.cmd").exists() {
+                // npm 全局无 CLI shim，跳过
             } else {
-                &["openclaw", "@qingchencloud/openclaw-zh"]
-            };
-            for pkg in pkgs {
-                let pkg_json = PathBuf::from(&appdata)
-                    .join("npm")
-                    .join("node_modules")
-                    .join(pkg)
-                    .join("package.json");
-                if let Ok(content) = fs::read_to_string(&pkg_json) {
-                    if let Some(ver) = serde_json::from_str::<Value>(&content)
-                        .ok()
-                        .and_then(|v| v.get("version")?.as_str().map(String::from))
-                    {
-                        return Some(ver);
+                let cli_is_zh = crate::utils::resolve_openclaw_cli_path()
+                    .map(|p| crate::utils::classify_cli_source(&p) == "npm-zh")
+                    .unwrap_or(false);
+                let pkgs: &[&str] = if cli_is_zh {
+                    &["@qingchencloud/openclaw-zh", "openclaw"]
+                } else {
+                    &["openclaw", "@qingchencloud/openclaw-zh"]
+                };
+                for pkg in pkgs {
+                    let pkg_json = npm_bin.join("node_modules").join(pkg).join("package.json");
+                    if let Ok(content) = fs::read_to_string(&pkg_json) {
+                        if let Some(ver) = serde_json::from_str::<Value>(&content)
+                            .ok()
+                            .and_then(|v| v.get("version")?.as_str().map(String::from))
+                        {
+                            return Some(ver);
+                        }
                     }
                 }
             }
