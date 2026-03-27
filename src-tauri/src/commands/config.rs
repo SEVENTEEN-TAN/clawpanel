@@ -192,7 +192,7 @@ fn standalone_archive_ext() -> &'static str {
 }
 
 /// standalone 安装目录
-fn standalone_install_dir() -> Option<PathBuf> {
+pub(crate) fn standalone_install_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
         // Inno Setup PrivilegesRequired=lowest 默认安装到 %LOCALAPPDATA%\Programs
@@ -207,7 +207,7 @@ fn standalone_install_dir() -> Option<PathBuf> {
 }
 
 /// 所有可能的 standalone 安装位置（用于检测和卸载）
-fn all_standalone_dirs() -> Vec<PathBuf> {
+pub(crate) fn all_standalone_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     #[cfg(target_os = "windows")]
     {
@@ -1267,6 +1267,68 @@ async fn get_local_version() -> Option<String> {
         }
     }
 
+    // Linux: 参照 macOS/Windows 实现，完整检测链
+    #[cfg(target_os = "linux")]
+    {
+        // 1. 活跃 CLI 优先
+        if let Some(cli_path) = crate::utils::resolve_openclaw_cli_path() {
+            let cli_pb = PathBuf::from(&cli_path);
+            let resolved = std::fs::canonicalize(&cli_pb).unwrap_or_else(|_| cli_pb.clone());
+            if let Some(ver) = read_version_from_installation(&resolved)
+                .or_else(|| read_version_from_installation(&cli_pb))
+            {
+                return Some(ver);
+            }
+        }
+        // 2. standalone 目录
+        for sa_dir in all_standalone_dirs() {
+            if !sa_dir.join("openclaw").exists() {
+                continue;
+            }
+            let version_file = sa_dir.join("VERSION");
+            if let Ok(content) = fs::read_to_string(&version_file) {
+                for line in content.lines() {
+                    if let Some(ver) = line.strip_prefix("openclaw_version=") {
+                        let ver = ver.trim();
+                        if !ver.is_empty() {
+                            return Some(ver.to_string());
+                        }
+                    }
+                }
+            }
+            let sa_pkg = sa_dir
+                .join("node_modules")
+                .join("@qingchencloud")
+                .join("openclaw-zh")
+                .join("package.json");
+            if let Ok(content) = fs::read_to_string(&sa_pkg) {
+                if let Some(ver) = serde_json::from_str::<Value>(&content)
+                    .ok()
+                    .and_then(|v| v.get("version")?.as_str().map(String::from))
+                {
+                    return Some(ver);
+                }
+            }
+        }
+        // 3. symlink -> package.json
+        if let Ok(target) = fs::read_link("/usr/local/bin/openclaw") {
+            let pkg_json = PathBuf::from("/usr/local/bin")
+                .join(&target)
+                .parent()
+                .map(|p| p.join("package.json"));
+            if let Some(ref pkg_path) = pkg_json {
+                if let Ok(content) = fs::read_to_string(pkg_path) {
+                    if let Some(ver) = serde_json::from_str::<Value>(&content)
+                        .ok()
+                        .and_then(|v| v.get("version")?.as_str().map(String::from))
+                    {
+                        return Some(ver);
+                    }
+                }
+            }
+        }
+    }
+
     // 所有平台通用 fallback: CLI 输出
     // Windows: 先确认 openclaw 不是第三方程序（如 CherryStudio）
     #[cfg(target_os = "windows")]
@@ -1400,9 +1462,42 @@ fn detect_installed_source() -> String {
         // 确实无法判断
         "unknown".into()
     }
-    // 所有平台通用: npm list 检测
+    // Linux: 参照 macOS 实现，完整检测链
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
+        // 1. 活跃 CLI 路径分类（与 macOS 一致）
+        if let Some(cli_path) = crate::utils::resolve_openclaw_cli_path() {
+            let resolved = std::fs::canonicalize(&cli_path)
+                .ok()
+                .unwrap_or_else(|| PathBuf::from(&cli_path));
+            let source = crate::utils::classify_cli_source(&resolved.to_string_lossy());
+            if source == "npm-zh" || source == "standalone" {
+                return "chinese".into();
+            }
+            if source == "npm-official" || source == "npm-global" {
+                return "official".into();
+            }
+        }
+        // 2. 检查 symlink 指向（/usr/local/bin/openclaw, ~/bin/openclaw）
+        let home = dirs::home_dir().unwrap_or_default();
+        for link in &[
+            PathBuf::from("/usr/local/bin/openclaw"),
+            home.join("bin").join("openclaw"),
+        ] {
+            if let Ok(target) = std::fs::read_link(link) {
+                if target.to_string_lossy().contains("openclaw-zh") {
+                    return "chinese".into();
+                }
+                return "official".into();
+            }
+        }
+        // 3. standalone 目录检测
+        for sa_dir in all_standalone_dirs() {
+            if sa_dir.join("openclaw").exists() || sa_dir.join("VERSION").exists() {
+                return "chinese".into();
+            }
+        }
+        // 4. npm list 兜底
         if let Ok(o) = npm_command()
             .args(["list", "-g", "@qingchencloud/openclaw-zh", "--depth=0"])
             .output()
@@ -2058,7 +2153,11 @@ async fn try_standalone_install(
             // 同步更新当前进程的 PATH 环境变量，使后续 resolve_openclaw_cli_path()
             // 和 build_enhanced_path() 能立即发现 standalone 安装的 CLI，
             // 无需重启应用（注册表写入仅对新进程生效）
-            std::env::set_var("PATH", format!("{};{}", current_path, install_str));
+            // SAFETY: 在 Tauri 命令处理器中单次调用，此时无其他线程并发读写 PATH。
+            // enhanced_path 使用独立的 RwLock 缓存，不受影响。
+            unsafe {
+                std::env::set_var("PATH", format!("{};{}", current_path, install_str));
+            }
             let _ = app.emit("upgrade-log", format!("已添加到 PATH: {install_str}"));
         }
     }
