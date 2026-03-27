@@ -1194,6 +1194,17 @@ async fn get_local_version() -> Option<String> {
 
     #[cfg(target_os = "windows")]
     {
+        // 优先从活跃 CLI 路径读取版本（与 macOS 逻辑一致）
+        if let Some(cli_path) = crate::utils::resolve_openclaw_cli_path() {
+            let cli_pb = PathBuf::from(&cli_path);
+            let resolved = std::fs::canonicalize(&cli_pb).unwrap_or_else(|_| cli_pb.clone());
+            if let Some(ver) = read_version_from_installation(&resolved)
+                .or_else(|| read_version_from_installation(&cli_pb))
+            {
+                return Some(ver);
+            }
+        }
+
         for sa_dir in all_standalone_dirs() {
             let version_file = sa_dir.join("VERSION");
             if let Ok(content) = fs::read_to_string(&version_file) {
@@ -1344,7 +1355,7 @@ fn detect_installed_source() -> String {
                 return "chinese".into();
             }
             if source == "standalone" {
-                return "official".into();
+                return "chinese".into();
             }
             // npm-official/npm-global: Windows .cmd shim 路径不含包名，需继续检查文件系统
         }
@@ -1546,8 +1557,16 @@ fn read_version_from_installation(cli_path: &std::path::Path) -> Option<String> 
                 }
             }
         }
+        // 根据 CLI 路径判断来源，决定 package.json 检查顺序
+        // 避免残留的另一来源包被优先读取
+        let cli_source = crate::utils::classify_cli_source(&cli_path.to_string_lossy());
+        let pkg_names: &[&str] = if cli_source == "npm-zh" || cli_source == "standalone" {
+            &["@qingchencloud/openclaw-zh", "openclaw"]
+        } else {
+            &["openclaw", "@qingchencloud/openclaw-zh"]
+        };
         // 尝试从 package.json 读取
-        for pkg_name in &["@qingchencloud/openclaw-zh", "openclaw"] {
+        for pkg_name in pkg_names {
             let pkg_json = dir.join("node_modules").join(pkg_name).join("package.json");
             if let Ok(content) = std::fs::read_to_string(&pkg_json) {
                 if let Some(ver) = serde_json::from_str::<serde_json::Value>(&content)
@@ -1560,7 +1579,7 @@ fn read_version_from_installation(cli_path: &std::path::Path) -> Option<String> 
         }
         // npm shim 情况：向上查找 node_modules
         if let Some(parent) = dir.parent() {
-            for pkg_name in &["@qingchencloud/openclaw-zh", "openclaw"] {
+            for pkg_name in pkg_names {
                 let pkg_json = parent
                     .join("node_modules")
                     .join(pkg_name)
