@@ -1,9 +1,9 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minAppVersion": "0.9.0",
-  "hash": "sha256:b2f72f7bb2c79f25c2831fab784363afbd51d74c307b8e73572b494ca2266eb3",
-  "url": "https://github.com/SEVENTEEN-TAN/clawpanel/releases/download/v1.0.1/web-1.0.1.zip",
+  "hash": "sha256:68abd7d88b3494b744e8d3b03ef2d69580e66ec87aea00c92a81900421c546e1",
+  "url": "https://github.com/SEVENTEEN-TAN/clawpanel/releases/download/v1.0.2/web-1.0.2.zip",
   "size": 2211586,
   "changelog": "",
-  "releasedAt": "2026-03-27T06:07:40Z"
+  "releasedAt": "2026-03-27T06:27:08Z"
 }
