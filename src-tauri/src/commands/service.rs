@@ -84,7 +84,11 @@ fn current_gateway_owner_signature() -> (u16, String, Option<String>) {
     let openclaw_dir = normalize_owned_path(crate::commands::openclaw_dir());
     let cli_path = crate::utils::resolve_openclaw_cli_path()
         .map(|p| normalize_owned_path(std::path::PathBuf::from(p)));
-    (crate::commands::gateway_listen_port(), openclaw_dir, cli_path)
+    (
+        crate::commands::gateway_listen_port(),
+        openclaw_dir,
+        cli_path,
+    )
 }
 
 fn read_gateway_owner() -> Option<GatewayOwnerRecord> {

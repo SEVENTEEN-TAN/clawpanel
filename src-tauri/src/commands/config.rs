@@ -1557,7 +1557,10 @@ fn scan_cli_identity(cli_path: &std::path::Path) -> String {
             .and_then(|name| name.to_str())
             .unwrap_or_default()
             .to_ascii_lowercase();
-        if matches!(file_name.as_str(), "openclaw" | "openclaw.exe" | "openclaw.ps1") {
+        if matches!(
+            file_name.as_str(),
+            "openclaw" | "openclaw.exe" | "openclaw.ps1"
+        ) {
             let cmd_path = cli_path.with_file_name("openclaw.cmd");
             if cmd_path.exists() {
                 identity_path = cmd_path;
@@ -1714,9 +1717,19 @@ fn scan_all_installations(
         if let Some(home) = dirs::home_dir() {
             try_add(home.join(".npm-global").join("bin").join("openclaw"));
             try_add(home.join(".local").join("bin").join("openclaw"));
-            try_add(home.join(".nvm").join("current").join("bin").join("openclaw"));
+            try_add(
+                home.join(".nvm")
+                    .join("current")
+                    .join("bin")
+                    .join("openclaw"),
+            );
             try_add(home.join(".volta").join("bin").join("openclaw"));
-            try_add(home.join(".fnm").join("current").join("bin").join("openclaw"));
+            try_add(
+                home.join(".fnm")
+                    .join("current")
+                    .join("bin")
+                    .join("openclaw"),
+            );
             try_add(home.join("bin").join("openclaw"));
         }
         try_add(std::path::PathBuf::from("/opt/openclaw/openclaw"));
@@ -2116,7 +2129,11 @@ fn npm_global_bin_dir() -> Option<PathBuf> {
     {
         super::windows_npm_global_prefix()
             .map(PathBuf::from)
-            .or_else(|| std::env::var("APPDATA").ok().map(|a| PathBuf::from(a).join("npm")))
+            .or_else(|| {
+                std::env::var("APPDATA")
+                    .ok()
+                    .map(|a| PathBuf::from(a).join("npm"))
+            })
     }
     #[cfg(target_os = "macos")]
     {
@@ -4613,9 +4630,7 @@ pub fn check_git() -> Result<Value, String> {
             result.insert("version".into(), Value::String(ver));
             result.insert(
                 "path".into(),
-                git_path
-                    .map(Value::String)
-                    .unwrap_or(Value::Null),
+                git_path.map(Value::String).unwrap_or(Value::Null),
             );
         }
         _ => {

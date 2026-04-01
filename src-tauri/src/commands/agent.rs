@@ -226,7 +226,8 @@ pub async fn list_agents() -> Result<Value, String> {
 pub async fn get_agent_detail(id: String) -> Result<Value, String> {
     let config_path = super::openclaw_dir().join("openclaw.json");
     let content = fs::read_to_string(&config_path).map_err(|e| format!("读取配置失败: {e}"))?;
-    let config: Value = serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {e}"))?;
+    let config: Value =
+        serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {e}"))?;
 
     let defaults = config
         .get("agents")
@@ -330,7 +331,8 @@ pub async fn update_agent_config(
 ) -> Result<Value, String> {
     let path = super::openclaw_dir().join("openclaw.json");
     let content = fs::read_to_string(&path).map_err(|e| format!("读取配置失败: {e}"))?;
-    let mut root: Value = serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {e}"))?;
+    let mut root: Value =
+        serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {e}"))?;
 
     if root.get("agents").is_none() {
         root.as_object_mut()
@@ -364,7 +366,9 @@ pub async fn update_agent_config(
     let agent = list[idx].as_object_mut().ok_or("Agent 格式错误")?;
 
     if let Some(identity) = config.get("identity").and_then(|v| v.as_object()) {
-        let identity_obj = agent.entry("identity".to_string()).or_insert_with(|| json!({}));
+        let identity_obj = agent
+            .entry("identity".to_string())
+            .or_insert_with(|| json!({}));
         let identity_obj = identity_obj.as_object_mut().ok_or("identity 格式错误")?;
         if let Some(name) = identity.get("name") {
             if name.is_null() {

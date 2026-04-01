@@ -169,8 +169,7 @@ fn normalize_binding_match_value(value: &Value) -> Option<Value> {
                 let Some(normalized) = normalize_binding_match_value(item) else {
                     continue;
                 };
-                if key == "accountId"
-                    && normalized.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                if key == "accountId" && normalized.as_str().map(|s| s.is_empty()).unwrap_or(false)
                 {
                     continue;
                 }
@@ -234,10 +233,11 @@ fn binding_identity_matches(binding: &Value, agent_id: &str, target_match: &Valu
         return false;
     }
 
-    let existing_match = normalize_binding_match_value(binding.get("match").unwrap_or(&Value::Null))
-        .unwrap_or_else(|| Value::Object(Map::new()));
-    let expected_match = normalize_binding_match_value(target_match)
-        .unwrap_or_else(|| Value::Object(Map::new()));
+    let existing_match =
+        normalize_binding_match_value(binding.get("match").unwrap_or(&Value::Null))
+            .unwrap_or_else(|| Value::Object(Map::new()));
+    let expected_match =
+        normalize_binding_match_value(target_match).unwrap_or_else(|| Value::Object(Map::new()));
 
     existing_match == expected_match
 }

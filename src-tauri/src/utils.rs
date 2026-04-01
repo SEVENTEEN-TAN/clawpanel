@@ -1,10 +1,10 @@
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
- pub fn is_rejected_cli_path(cli_path: &str) -> bool {
-     let lower = cli_path.replace('\\', "/").to_lowercase();
-     lower.contains("/.cherrystudio/") || lower.contains("cherry-studio")
- }
+pub fn is_rejected_cli_path(cli_path: &str) -> bool {
+    let lower = cli_path.replace('\\', "/").to_lowercase();
+    lower.contains("/.cherrystudio/") || lower.contains("cherry-studio")
+}
 
 /// 读取 clawpanel.json 中用户绑定的 CLI 路径
 fn bound_cli_path() -> Option<std::path::PathBuf> {
@@ -180,8 +180,7 @@ pub fn openclaw_command() -> std::process::Command {
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let bin = resolve_openclaw_cli_path()
-            .unwrap_or_else(|| "openclaw".into());
+        let bin = resolve_openclaw_cli_path().unwrap_or_else(|| "openclaw".into());
         let mut cmd = std::process::Command::new(bin);
         cmd.env("PATH", crate::commands::enhanced_path());
         apply_openclaw_dir_env(&mut cmd);
@@ -217,8 +216,7 @@ pub fn openclaw_command_async() -> tokio::process::Command {
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let bin = resolve_openclaw_cli_path()
-            .unwrap_or_else(|| "openclaw".into());
+        let bin = resolve_openclaw_cli_path().unwrap_or_else(|| "openclaw".into());
         let mut cmd = tokio::process::Command::new(bin);
         cmd.env("PATH", crate::commands::enhanced_path());
         apply_openclaw_dir_env_tokio(&mut cmd);

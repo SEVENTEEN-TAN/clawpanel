@@ -295,8 +295,8 @@ fn build_enhanced_path() -> String {
     let home = dirs::home_dir().unwrap_or_default();
 
     // 读取用户保存的自定义 Node.js 路径
-    let custom_path = read_panel_config_value()
-        .and_then(|v| v.get("nodePath")?.as_str().map(String::from));
+    let custom_path =
+        read_panel_config_value().and_then(|v| v.get("nodePath")?.as_str().map(String::from));
 
     #[cfg(target_os = "macos")]
     {
