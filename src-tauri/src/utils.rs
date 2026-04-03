@@ -141,7 +141,7 @@ pub fn classify_cli_source(cli_path: &str) -> String {
     if lower.contains("openclaw-zh") || lower.contains("@qingchencloud") {
         return "npm-zh".into();
     }
-    
+
     #[cfg(target_os = "windows")]
     {
         if let Ok(content) = std::fs::read_to_string(cli_path) {
@@ -149,7 +149,9 @@ pub fn classify_cli_source(cli_path: &str) -> String {
             if content_lower.contains("openclaw-zh") || content_lower.contains("@qingchencloud") {
                 return "npm-zh".into();
             }
-            if content_lower.contains("/node_modules/openclaw/") || content_lower.contains("\\node_modules\\openclaw\\") {
+            if content_lower.contains("/node_modules/openclaw/")
+                || content_lower.contains("\\node_modules\\openclaw\\")
+            {
                 return "npm-official".into();
             }
         }
@@ -162,7 +164,9 @@ pub fn classify_cli_source(cli_path: &str) -> String {
             if target_str.contains("openclaw-zh") || target_str.contains("@qingchencloud") {
                 return "npm-zh".into();
             }
-            if target_str.contains("/node_modules/openclaw/") || target_str.contains("node_modules/openclaw") {
+            if target_str.contains("/node_modules/openclaw/")
+                || target_str.contains("node_modules/openclaw")
+            {
                 return "npm-official".into();
             }
         }
