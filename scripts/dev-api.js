@@ -173,6 +173,14 @@ function classifyCliSource(cliPath) {
   if (isWindows) {
     const shimSource = detectWindowsShimSource(normalized)
     if (shimSource) return shimSource
+  } else {
+    try {
+      if (fs.lstatSync(normalized).isSymbolicLink()) {
+        const targetStr = fs.readlinkSync(normalized).toLowerCase()
+        if (targetStr.includes('openclaw-zh') || targetStr.includes('@qingchencloud')) return 'npm-zh'
+        if (targetStr.includes('/node_modules/openclaw/') || targetStr.includes('node_modules/openclaw')) return 'npm-official'
+      }
+    } catch {}
   }
   if (lower.includes('/npm/') || lower.includes('/node_modules/')) return 'npm-official'
   if (lower.includes('/homebrew/') || lower.includes('/usr/local/bin/') || lower.includes('/usr/bin/')) return 'npm-global'
@@ -2238,7 +2246,9 @@ async function waitForGatewayStopped(label = 'ai.openclaw.gateway', timeoutMs = 
   while (Date.now() < deadline) {
     const status = await getLocalGatewayRuntime(label)
     if (!status?.running) {
-      clearGatewayOwner()
+      if (isCurrentGatewayOwner(readGatewayOwner())) {
+        clearGatewayOwner()
+      }
       return true
     }
     await new Promise(resolve => setTimeout(resolve, 300))
@@ -2850,15 +2860,17 @@ const handlers = {
     if (isMac) {
       macStopService(label)
       if (!(await waitForGatewayStopped(label))) throw new Error('Gateway 停止超时')
+      if (isCurrentGatewayOwner(readGatewayOwner())) clearGatewayOwner()
       return true
     }
     if (isLinux) {
       linuxStopGateway()
       if (!(await waitForGatewayStopped(label))) throw new Error('Gateway 停止超时')
+      if (isCurrentGatewayOwner(readGatewayOwner())) clearGatewayOwner()
       return true
     }
     await winStopGateway()
-    clearGatewayOwner()
+    if (isCurrentGatewayOwner(readGatewayOwner())) clearGatewayOwner()
     return true
   },
 

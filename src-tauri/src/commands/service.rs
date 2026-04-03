@@ -208,7 +208,12 @@ async fn wait_for_gateway_stopped(label: &str, timeout: Duration) -> Result<(), 
     while Instant::now() < deadline {
         let (running, _) = current_gateway_runtime(label).await;
         if !running {
-            clear_gateway_owner();
+            // 正常停止后，只有当该进程确实是当前面板管理的才清理 owner 文件
+            if let Some(owner) = read_gateway_owner() {
+                if is_current_gateway_owner(&owner, None) {
+                    clear_gateway_owner();
+                }
+            }
             return Ok(());
         }
         tokio::time::sleep(Duration::from_millis(300)).await;
